@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# client variables for cert
+C="Some Country"                   # Country
+ST="Some County"                   # State / County
+L="Some Town"                      # Town / Location
+O="Some Company"                   # Company Name / Organization
+OU="Some Team"                     # Department / Organizational Unit
+DOMAIN="some.domain.com"           # Domain to be used with host eg hostname.domain
+EMAIL="sysadmin@domain.com"        # Email address for the certificate
+
+# other cert settings
+DAYS=3650
+
+READY=false
+
+echo -n "Enter hostname of new client (eg: hamburger): "; read CLIENT
+echo -n "Are you sure you want to create new key/cert/pem for [$CLIENT] [y/N]: "; read CHOICE
+case $CHOICE in
+  y|Y) READY=true;;
+  *) echo "Aborted."; exit;;
+esac
+
+echo
+echo "#####################################################################"
+echo "# Make sure you've created a 256-bit key first before continuing... #"
+echo "#   Press RETURN if you made the key already or CTRL+C to cancel    #"
+echo "#####################################################################"
+read
+
+# generate 4096 bit key
+openssl genrsa -aes256 -out $CLIENT-fd.key 4096
+
+# generate cert paired with 4096 key
+openssl req -new -key $CLIENT-fd.key -x509 -out $CLIENT-fd.cert -days $DAYS -subj "/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CLIENT.$DOMAIN/emailAddress=$EMAIL"
+
+# create passphraseless key
+openssl rsa -in $CLIENT-fd.key -out $CLIENT-fd-clear.key
+
+# create new pem from passphraseless key and cert
+cat $CLIENT-fd-clear.key $CLIENT-fd.cert > $CLIENT-fd.pem
